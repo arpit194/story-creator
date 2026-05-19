@@ -1,9 +1,9 @@
 FROM node:22-alpine AS base
-RUN npm install -g pnpm
+RUN npm install -g pnpm@latest --ignore-scripts
 
 FROM base AS deps
 WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml .npmrc ./
 RUN pnpm install --frozen-lockfile
 
 FROM base AS builder
