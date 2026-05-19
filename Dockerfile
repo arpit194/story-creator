@@ -19,4 +19,4 @@ COPY --from=builder /app/.output ./.output
 COPY --from=builder /app/drizzle ./drizzle
 COPY package.json drizzle.config.ts ./
 EXPOSE 3000
-CMD ["sh", "start.sh"]
+CMD ["node", ".output/server/index.mjs"]
