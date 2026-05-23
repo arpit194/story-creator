@@ -1,52 +1,56 @@
-export type MissionType = 'Story' | 'Side' | 'Base'
-export type StageType = 'Dialogue' | 'Pickup' | 'Drop'
+export type MissionType = "Story" | "Side" | "Base";
+export type StageType = "Dialogue" | "Pickup" | "Drop";
 
 export interface DialogueLine {
-  id: string
-  speakerId: string
-  text: string
+	id: string;
+	speakerId: string;
+	text: string;
 }
 
 export interface MissionStage {
-  id: string
-  stageType: StageType
-  targetBuildingId: string | null
-  statusMessage: string
-  dialogues: DialogueLine[]
-  cargoWeight: number
-  timeLimit: number
+	id: string;
+	stageType: StageType;
+	targetBuildingId: string | null;
+	statusMessage: string;
+	dialogues: DialogueLine[];
+	cargoWeight: number;
+	timeLimit: number;
+	audioComplete: boolean;
 }
 
 export interface Mission {
-  id: string
-  missionName: string
-  description: string
-  missionType: MissionType
-  prerequisites: string[]
-  stages: MissionStage[]
-  positionX: number
-  positionY: number
+	id: string;
+	missionName: string;
+	description: string;
+	missionType: MissionType;
+	prerequisites: string[];
+	stages: MissionStage[];
+	positionX: number;
+	positionY: number;
 }
 
 export interface Character {
-  id: string
-  name: string
-  age: number
-  description: string
+	id: string;
+	name: string;
+	nickname: string;
+	age: number;
+	gender: string;
+	occupation: string;
+	description: string;
 }
 
 export interface Building {
-  id: string
-  buildingName: string
+	id: string;
+	buildingName: string;
 }
 
 export interface MissionEdge {
-  id: string
-  source: string  // mission id
-  target: string  // mission id
+	id: string;
+	source: string; // mission id
+	target: string; // mission id
 }
 
 export interface GraphData {
-  missions: Mission[]
-  edges: MissionEdge[]
+	missions: Mission[];
+	edges: MissionEdge[];
 }

@@ -11,7 +11,10 @@ import {
 export const characters = pgTable('characters', {
   id: uuid().primaryKey().defaultRandom(),
   name: text().notNull(),
+  nickname: text().notNull().default(''),
   age: integer().notNull().default(0),
+  gender: text().notNull().default(''),
+  occupation: text().notNull().default(''),
   description: text().notNull().default(''),
   deletedAt: timestamp('deleted_at'),
 })

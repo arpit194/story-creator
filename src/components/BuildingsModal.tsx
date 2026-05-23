@@ -1,5 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Pencil, Plus, Trash2, X } from "lucide-react";
+import {
+	Building2,
+	Clipboard,
+	ClipboardCheck,
+	Pencil,
+	Plus,
+	Trash2,
+	X,
+} from "lucide-react";
 import { useState } from "react";
 import { ConfirmDialog } from "#/components/ConfirmDialog";
 import {
@@ -14,11 +22,31 @@ interface Props {
 	onClose: () => void;
 }
 
+function toUnityId(name: string): string {
+	return name
+		.trim()
+		.toUpperCase()
+		.replace(/[^A-Z0-9]+/g, "_")
+		.replace(/^_|_$/g, "");
+}
+
 export function BuildingsModal({ onClose }: Props) {
 	const qc = useQueryClient();
 	const [name, setName] = useState("");
 	const [editing, setEditing] = useState<Building | null>(null);
 	const [confirmDelete, setConfirmDelete] = useState<Building | null>(null);
+	const [copied, setCopied] = useState(false);
+
+	function copyJson(buildings: Building[]) {
+		const unity = buildings.map((b) => ({
+			id: toUnityId(b.buildingName),
+			name: b.buildingName,
+		}));
+		navigator.clipboard.writeText(JSON.stringify(unity, null, 2)).then(() => {
+			setCopied(true);
+			setTimeout(() => setCopied(false), 2000);
+		});
+	}
 
 	const { data: buildings = [] } = useQuery({
 		queryKey: ["buildings"],
@@ -100,14 +128,32 @@ export function BuildingsModal({ onClose }: Props) {
 								{buildings.length}
 							</span>
 						</div>
-						<button
-							type="button"
-							onClick={onClose}
-							className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-white/5"
-							style={{ color: "#475569" }}
-						>
-							<X className="h-4 w-4" />
-						</button>
+						<div className="flex items-center gap-2">
+							<button
+								type="button"
+								onClick={() => copyJson(buildings)}
+								className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all hover:bg-white/5"
+								style={{
+									color: copied ? "#34d399" : "#475569",
+									border: `1px solid ${copied ? "rgba(52,211,153,0.25)" : "rgba(255,255,255,0.06)"}`,
+								}}
+							>
+								{copied ? (
+									<ClipboardCheck className="h-3.5 w-3.5" />
+								) : (
+									<Clipboard className="h-3.5 w-3.5" />
+								)}
+								{copied ? "Copied!" : "Copy JSON"}
+							</button>
+							<button
+								type="button"
+								onClick={onClose}
+								className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-white/5"
+								style={{ color: "#475569" }}
+							>
+								<X className="h-4 w-4" />
+							</button>
+						</div>
 					</div>
 
 					{/* Form */}

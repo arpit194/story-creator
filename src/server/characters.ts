@@ -16,7 +16,10 @@ export const getCharacters = createServerFn({ method: 'GET' }).handler(
 
 const characterInput = z.object({
   name: z.string().min(1),
+  nickname: z.string(),
   age: z.number().int().min(0),
+  gender: z.string(),
+  occupation: z.string(),
   description: z.string(),
 })
 

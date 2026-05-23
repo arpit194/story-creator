@@ -1,5 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, Trash2, User, X } from "lucide-react";
+import {
+	Clipboard,
+	ClipboardCheck,
+	Pencil,
+	Plus,
+	Trash2,
+	User,
+	X,
+} from "lucide-react";
 import { useState } from "react";
 import { ConfirmDialog } from "#/components/ConfirmDialog";
 import {
@@ -14,13 +22,38 @@ interface Props {
 	onClose: () => void;
 }
 
-const EMPTY = { name: "", age: 0, description: "" };
+const EMPTY = { name: "", nickname: "", age: 0, gender: "", occupation: "", description: "" };
+
+function toUnityId(name: string): string {
+	return name
+		.trim()
+		.toUpperCase()
+		.replace(/[^A-Z0-9]+/g, "_")
+		.replace(/^_|_$/g, "");
+}
 
 export function CharactersModal({ onClose }: Props) {
 	const qc = useQueryClient();
 	const [form, setForm] = useState(EMPTY);
 	const [editing, setEditing] = useState<Character | null>(null);
 	const [confirmDelete, setConfirmDelete] = useState<Character | null>(null);
+	const [copied, setCopied] = useState(false);
+
+	function copyJson(characters: Character[]) {
+		const unity = characters.map((c) => ({
+			id: toUnityId(c.name),
+			name: c.name,
+			nickname: c.nickname,
+			age: c.age,
+			gender: c.gender,
+			occupation: c.occupation,
+			description: c.description,
+		}));
+		navigator.clipboard.writeText(JSON.stringify(unity, null, 2)).then(() => {
+			setCopied(true);
+			setTimeout(() => setCopied(false), 2000);
+		});
+	}
 
 	const { data: characters = [] } = useQuery({
 		queryKey: ["characters"],
@@ -58,7 +91,7 @@ export function CharactersModal({ onClose }: Props) {
 
 	const startEdit = (c: Character) => {
 		setEditing(c);
-		setForm({ name: c.name, age: c.age, description: c.description });
+		setForm({ name: c.name, nickname: c.nickname, age: c.age, gender: c.gender, occupation: c.occupation, description: c.description });
 	};
 	const cancelEdit = () => {
 		setEditing(null);
@@ -100,14 +133,32 @@ export function CharactersModal({ onClose }: Props) {
 								{characters.length}
 							</span>
 						</div>
-						<button
-							type="button"
-							onClick={onClose}
-							className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-white/5"
-							style={{ color: "#475569" }}
-						>
-							<X className="h-4 w-4" />
-						</button>
+						<div className="flex items-center gap-2">
+							<button
+								type="button"
+								onClick={() => copyJson(characters)}
+								className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all hover:bg-white/5"
+								style={{
+									color: copied ? "#34d399" : "#475569",
+									border: `1px solid ${copied ? "rgba(52,211,153,0.25)" : "rgba(255,255,255,0.06)"}`,
+								}}
+							>
+								{copied ? (
+									<ClipboardCheck className="h-3.5 w-3.5" />
+								) : (
+									<Clipboard className="h-3.5 w-3.5" />
+								)}
+								{copied ? "Copied!" : "Copy JSON"}
+							</button>
+							<button
+								type="button"
+								onClick={onClose}
+								className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-white/5"
+								style={{ color: "#475569" }}
+							>
+								<X className="h-4 w-4" />
+							</button>
+						</div>
 					</div>
 
 					{/* Form */}
@@ -141,7 +192,18 @@ export function CharactersModal({ onClose }: Props) {
 										required
 									/>
 								</div>
-								<div className="flex w-24 flex-col gap-1.5">
+								<div className="flex w-32 flex-col gap-1.5">
+									<span className={label}>Nickname</span>
+									<input
+										className={input}
+										placeholder="e.g. Tom"
+										value={form.nickname}
+										onChange={(e) =>
+											setForm((f) => ({ ...f, nickname: e.target.value }))
+										}
+									/>
+								</div>
+								<div className="flex w-20 flex-col gap-1.5">
 									<span className={label}>Age</span>
 									<input
 										type="number"
@@ -151,6 +213,30 @@ export function CharactersModal({ onClose }: Props) {
 										value={form.age}
 										onChange={(e) =>
 											setForm((f) => ({ ...f, age: Number(e.target.value) }))
+										}
+									/>
+								</div>
+							</div>
+							<div className="mt-3 flex gap-3">
+								<div className="flex flex-1 flex-col gap-1.5">
+									<span className={label}>Gender</span>
+									<input
+										className={input}
+										placeholder="e.g. Male"
+										value={form.gender}
+										onChange={(e) =>
+											setForm((f) => ({ ...f, gender: e.target.value }))
+										}
+									/>
+								</div>
+								<div className="flex flex-1 flex-col gap-1.5">
+									<span className={label}>Occupation</span>
+									<input
+										className={input}
+										placeholder="e.g. Mayor"
+										value={form.occupation}
+										onChange={(e) =>
+											setForm((f) => ({ ...f, occupation: e.target.value }))
 										}
 									/>
 								</div>

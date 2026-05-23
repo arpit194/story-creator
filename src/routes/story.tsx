@@ -41,6 +41,15 @@ export const Route = createFileRoute("/story")({ component: StoryCreatorPage });
 
 const nodeTypes = { mission: MissionNode };
 
+// "Postmaster Rita" → "POSTMASTER_RITA", "First Delivery" → "FIRST_DELIVERY"
+function toUnityId(name: string): string {
+	return name
+		.trim()
+		.toUpperCase()
+		.replace(/[^A-Z0-9]+/g, "_")
+		.replace(/^_|_$/g, "");
+}
+
 function StoryCreatorPage() {
 	return (
 		<ReactFlowProvider>
@@ -125,11 +134,44 @@ function StoryCreator() {
 	const copyCurrentJson = useCallback(() => {
 		const { nodes: n, edges: e } = useCanvasStore.getState();
 		const data = buildGraphData(n, e);
-		navigator.clipboard.writeText(JSON.stringify(data, null, 2)).then(() => {
-			setJsonCopied(true);
-			setTimeout(() => setJsonCopied(false), 2000);
-		});
-	}, []);
+
+		// Build lookup maps: uuid → unityId
+		const charById = new Map(characters.map((c) => [c.id, toUnityId(c.name)]));
+		const bldById = new Map(
+			buildings.map((b) => [b.id, toUnityId(b.buildingName)]),
+		);
+		const missionById = new Map(
+			data.missions.map((m) => [m.id, toUnityId(m.missionName)]),
+		);
+
+		const unityMissions = data.missions.map((m) => ({
+			id: toUnityId(m.missionName),
+			name: m.missionName,
+			type: m.missionType,
+			description: m.description,
+			prerequisites: m.prerequisites.map((id) => missionById.get(id) ?? id),
+			stages: m.stages.map((st) => ({
+				stageType: st.stageType,
+				targetBuilding: st.targetBuildingId
+					? (bldById.get(st.targetBuildingId) ?? st.targetBuildingId)
+					: null,
+				statusMessage: st.statusMessage,
+				cargoWeight: st.cargoWeight,
+				timeLimit: st.timeLimit,
+				dialogues: st.dialogues.map((d) => ({
+					speaker: charById.get(d.speakerId) ?? d.speakerId,
+					text: d.text,
+				})),
+			})),
+		}));
+
+		navigator.clipboard
+			.writeText(JSON.stringify(unityMissions, null, 2))
+			.then(() => {
+				setJsonCopied(true);
+				setTimeout(() => setJsonCopied(false), 2000);
+			});
+	}, [characters, buildings]);
 	const [now, setNow] = useState(() => Date.now());
 	useEffect(() => {
 		const t = setInterval(() => setNow(Date.now()), 1_000);
@@ -731,7 +773,7 @@ ${bldList}
 							variant={BackgroundVariant.Dots}
 							gap={24}
 							size={1}
-							color="rgba(255,255,255,0.04)"
+							color="rgba(255,255,255,0.15)"
 						/>
 						<Controls />
 						<MiniMap
