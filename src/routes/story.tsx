@@ -150,19 +150,31 @@ function StoryCreator() {
 			type: m.missionType,
 			description: m.description,
 			prerequisites: m.prerequisites.map((id) => missionById.get(id) ?? id),
-			stages: m.stages.map((st) => ({
-				stageType: st.stageType,
-				targetBuilding: st.targetBuildingId
-					? (bldById.get(st.targetBuildingId) ?? st.targetBuildingId)
-					: null,
-				statusMessage: st.statusMessage,
-				cargoWeight: st.cargoWeight,
-				timeLimit: st.timeLimit,
-				dialogues: st.dialogues.map((d) => ({
-					speaker: charById.get(d.speakerId) ?? d.speakerId,
-					text: d.text,
-				})),
-			})),
+			stages: m.stages.map((st) => {
+				const base = { stageType: st.stageType, statusMessage: st.statusMessage };
+				const resolveBuilding = (id: string | null) =>
+					id ? (bldById.get(id) ?? id) : null;
+				const dialogues = st.dialogues.map((d) => {
+					const speaker = charById.get(d.speakerId) ?? d.speakerId;
+					return speaker ? { speaker, text: d.text } : { text: d.text };
+				});
+				if (st.stageType === "Pickup") {
+					return { ...base, targetBuilding: resolveBuilding(st.targetBuildingId), cargoWeight: st.cargoWeight, dialogues };
+				}
+				if (st.stageType === "Drop") {
+					return { ...base, targetBuilding: resolveBuilding(st.targetBuildingId), timeLimit: st.timeLimit, dialogues };
+				}
+				if (st.stageType === "Follow") {
+					return { ...base, destination: resolveBuilding(st.destination), dialogues };
+				}
+				if (st.stageType === "Chase") {
+					const out: Record<string, unknown> = { ...base, escapeDestination: resolveBuilding(st.escapeDestination), dialogues };
+					if (st.chaseStatusMessage) out.chaseStatusMessage = st.chaseStatusMessage;
+					return out;
+				}
+				// Dialogue
+				return { ...base, targetBuilding: resolveBuilding(st.targetBuildingId), dialogues };
+			}),
 		}));
 
 		navigator.clipboard

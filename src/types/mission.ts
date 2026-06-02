@@ -1,5 +1,5 @@
 export type MissionType = "Story" | "Side" | "Base";
-export type StageType = "Dialogue" | "Pickup" | "Drop";
+export type StageType = "Dialogue" | "Pickup" | "Drop" | "Follow" | "Chase";
 
 export interface DialogueLine {
 	id: string;
@@ -16,6 +16,9 @@ export interface MissionStage {
 	cargoWeight: number;
 	timeLimit: number;
 	audioComplete: boolean;
+	destination: string | null;
+	escapeDestination: string | null;
+	chaseStatusMessage: string;
 }
 
 export interface Mission {

@@ -25,6 +25,8 @@ const STAGE_COLOR: Record<string, string> = {
 	Dialogue: "#a78bfa",
 	Pickup: "#34d399",
 	Drop: "#fb7185",
+	Follow: "#38bdf8",
+	Chase: "#fb923c",
 };
 
 const s = {
@@ -212,6 +214,9 @@ export function MissionPanel() {
 					cargoWeight: 0,
 					timeLimit: 0,
 					audioComplete: false,
+					destination: null,
+					escapeDestination: null,
+					chaseStatusMessage: "",
 				},
 			],
 		});
@@ -552,7 +557,7 @@ function StageCard({
 
 						{/* Type pills + delete */}
 						<div className="flex gap-1.5">
-							{(["Dialogue", "Pickup", "Drop"] as StageType[]).map((t) => {
+							{(["Dialogue", "Pickup", "Drop", "Follow", "Chase"] as StageType[]).map((t) => {
 								const c = STAGE_COLOR[t];
 								const active = stage.stageType === t;
 								return (
@@ -581,22 +586,62 @@ function StageCard({
 							</button>
 						</div>
 
-						<Field label="Target Building">
-							<select
-								className={select}
-								value={stage.targetBuildingId ?? ""}
-								onChange={(e) =>
-									onPatch({ targetBuildingId: e.target.value || null })
-								}
-							>
-								<option value="">Random</option>
-								{buildings.map((b) => (
-									<option key={b.id} value={b.id}>
-										{b.buildingName}
-									</option>
-								))}
-							</select>
-						</Field>
+						{(stage.stageType === "Dialogue" || stage.stageType === "Pickup" || stage.stageType === "Drop") && (
+							<Field label="Target Building">
+								<select
+									className={select}
+									value={stage.targetBuildingId ?? ""}
+									onChange={(e) =>
+										onPatch({ targetBuildingId: e.target.value || null })
+									}
+								>
+									<option value="">Random</option>
+									{buildings.map((b) => (
+										<option key={b.id} value={b.id}>
+											{b.buildingName}
+										</option>
+									))}
+								</select>
+							</Field>
+						)}
+
+						{stage.stageType === "Follow" && (
+							<Field label="Destination">
+								<select
+									className={select}
+									value={stage.destination ?? ""}
+									onChange={(e) =>
+										onPatch({ destination: e.target.value || null })
+									}
+								>
+									<option value="">None</option>
+									{buildings.map((b) => (
+										<option key={b.id} value={b.id}>
+											{b.buildingName}
+										</option>
+									))}
+								</select>
+							</Field>
+						)}
+
+						{stage.stageType === "Chase" && (
+							<Field label="Escape Destination">
+								<select
+									className={select}
+									value={stage.escapeDestination ?? ""}
+									onChange={(e) =>
+										onPatch({ escapeDestination: e.target.value || null })
+									}
+								>
+									<option value="">None</option>
+									{buildings.map((b) => (
+										<option key={b.id} value={b.id}>
+											{b.buildingName}
+										</option>
+									))}
+								</select>
+							</Field>
+						)}
 
 						<Field label="Status Message">
 							<input
@@ -607,8 +652,19 @@ function StageCard({
 							/>
 						</Field>
 
+						{stage.stageType === "Chase" && (
+							<Field label="Chase Status Message">
+								<input
+									className={input}
+									placeholder="Shown after chaser spawns (optional)"
+									value={stage.chaseStatusMessage}
+									onChange={(e) => onPatch({ chaseStatusMessage: e.target.value })}
+								/>
+							</Field>
+						)}
+
 						{stage.stageType === "Pickup" && (
-							<Field label="Cargo Weight">
+							<Field label="Cargo Weight (kg)">
 								<input
 									type="number"
 									min={0}
@@ -636,79 +692,81 @@ function StageCard({
 							</Field>
 						)}
 
-						{/* Dialogue nested collapsible — uses same CardCollapsible style */}
-						<div
-							className="-mx-4 overflow-hidden rounded-lg"
-							style={{
-								background: "var(--surface-3)",
-								border: "1px solid var(--border)",
-							}}
-						>
-							<CardCollapsible
-								label="Dialogue Lines"
-								count={stage.dialogues.length}
-								defaultOpen={false}
+						{/* Dialogue lines */}
+						{true && (
+							<div
+								className="-mx-4 overflow-hidden rounded-lg"
+								style={{
+									background: "var(--surface-3)",
+									border: "1px solid var(--border)",
+								}}
 							>
-								<div className="flex flex-col gap-2">
-									{stage.dialogues.map((line, li) => (
-										<div
-											key={line.id}
-											className="flex flex-col gap-2 rounded-lg p-3"
+								<CardCollapsible
+									label="Dialogue Lines"
+									count={stage.dialogues.length}
+									defaultOpen={false}
+								>
+									<div className="flex flex-col gap-2">
+										{stage.dialogues.map((line, li) => (
+											<div
+												key={line.id}
+												className="flex flex-col gap-2 rounded-lg p-3"
+												style={{
+													background: "var(--surface-2)",
+													border: "1px solid var(--border)",
+												}}
+											>
+												<div className="flex items-center gap-2">
+													<select
+														className={`${select} flex-1`}
+														value={line.speakerId}
+														onChange={(e) =>
+															onPatchDialogue(li, { speakerId: e.target.value })
+														}
+													>
+														<option value="">Select speaker</option>
+														{characters.map((c) => (
+															<option key={c.id} value={c.id}>
+																{c.name}
+															</option>
+														))}
+													</select>
+													<button
+														type="button"
+														onClick={() => setConfirmRemoveLine(li)}
+														className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-red-500/10 hover:text-red-400"
+														style={{ color: "#334155" }}
+													>
+														<Trash2 className="h-3 w-3" />
+													</button>
+												</div>
+												<textarea
+													className={`${input} resize-none`}
+													rows={2}
+													placeholder="Dialogue text…"
+													value={line.text}
+													onChange={(e) =>
+														onPatchDialogue(li, { text: e.target.value })
+													}
+												/>
+											</div>
+										))}
+										<button
+											type="button"
+											onClick={onAddDialogue}
+											className="flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs transition-colors hover:bg-white/5"
 											style={{
-												background: "var(--surface-2)",
-												border: "1px solid var(--border)",
+												color: stageColor,
+												border: `1px dashed ${stageColor}30`,
 											}}
 										>
-											<div className="flex items-center gap-2">
-												<select
-													className={`${select} flex-1`}
-													value={line.speakerId}
-													onChange={(e) =>
-														onPatchDialogue(li, { speakerId: e.target.value })
-													}
-												>
-													<option value="">Select speaker</option>
-													{characters.map((c) => (
-														<option key={c.id} value={c.id}>
-															{c.name}
-														</option>
-													))}
-												</select>
-												<button
-													type="button"
-													onClick={() => setConfirmRemoveLine(li)}
-													className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-red-500/10 hover:text-red-400"
-													style={{ color: "#334155" }}
-												>
-													<Trash2 className="h-3 w-3" />
-												</button>
-											</div>
-											<textarea
-												className={`${input} resize-none`}
-												rows={2}
-												placeholder="Dialogue text…"
-												value={line.text}
-												onChange={(e) =>
-													onPatchDialogue(li, { text: e.target.value })
-												}
-											/>
-										</div>
-									))}
-									<button
-										type="button"
-										onClick={onAddDialogue}
-										className="flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs transition-colors hover:bg-white/5"
-										style={{
-											color: stageColor,
-											border: `1px dashed ${stageColor}30`,
-										}}
-									>
-										<Plus className="h-3 w-3" />
-										Add Line
-									</button>
-								</div>
-							</CardCollapsible>
-						</div>
+											<Plus className="h-3 w-3" />
+											Add Line
+										</button>
+									</div>
+								</CardCollapsible>
+							</div>
+						)}
 					</div>
 				</CardCollapsible>
 			</div>
